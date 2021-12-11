@@ -1,0 +1,198 @@
+<!DOCTYPE HTML >
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>聊天室</title>
+    <script src="./jquery-1.12.3.min.js"></script>
+	<script src="./WebIMConfig.js"></script>
+    <script src="../js/webimSDK3.0.4.js"></script>
+    <script src="../js/EMedia_x1v1.js"></script>
+    <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">用户注册或登录环信</h3>
+                </div>
+                <div class="panel-body">
+                    <!--<div class="list-group">
+                     <a href="#" class="list-group-item">你好，${sessionScope.username}</a>
+                     <a href="logout" class="list-group-item">退出</a>
+                    </div>-->
+                    <div class="panel-body">
+                        <input type="text" class="form-control" id="userId" placeholder="用户ID"/><br>
+                        <button id="reg" type="button" class="btn btn-primary">注册</button>
+                        <button id="login" type="button" class="btn btn-primary">登录</button>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-primary" id="online">
+				<div class="panel-body">
+					<input type="text" class="form-control" id="toUserId" placeholder="接收消息用户ID"/><br>
+				</div>
+            </div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">群发系统广播</h3>
+                </div>
+                <div class="panel-body">
+                    <input type="text" class="form-control" id="msg"/><br>
+                    <button id="broadcast" type="button" class="btn btn-primary">发送</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title" id="talktitle"></h3>
+                </div>
+                <div class="panel-body">
+                    <div class="well" id="log-container" style="height:400px;overflow-y:scroll">
+
+                    </div>
+                    <input type="text" id="myinfo" class="form-control col-md-12"/> <br>
+                    <button id="send" type="button" class="btn btn-primary">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var conn = {};
+    console.log(WebIM, window.WebIM);
+    WebIM.config = config;
+    // 创建链接
+    conn = WebIM.conn = new WebIM.default.connection({
+        appKey: WebIM.config.appkey,
+        isHttpDNS: WebIM.config.isHttpDNS,
+        isMultiLoginSessions: WebIM.config.isMultiLoginSessions,
+        host: WebIM.config.Host,
+        https: WebIM.config.https,
+        url: WebIM.config.xmppURL,
+        apiUrl: WebIM.config.apiURL,
+        isAutoLogin: false,
+        heartBeatWait: WebIM.config.heartBeatWait,
+        autoReconnectNumMax: WebIM.config.autoReconnectNumMax,
+        autoReconnectInterval: WebIM.config.autoReconnectInterval,
+        isStropheLog: WebIM.config.isStropheLog,
+        delivery: WebIM.config.delivery
+    });
+    conn.listen({
+        onOpened: function (message) {          //连接成功回调
+            var myDate = new Date().toLocaleString();
+            console.log("%c [opened] 连接已成功建立", "color: green");
+            console.log(myDate);
+            // rek();
+            // alert(myDate + "登陆成功")
+        },
+        onClosed: function (message) {
+            console.log("onclose:" + message);
+            console.log(error);
+        },         //连接关闭回调
+        onTextMessage: function (message) {
+            console.log('onTextMessage: ', message);
+			$("#log-container").append("<div class='bg-success'><label class='text-info'>用户ID为&nbsp;"+userId+"收用户" + message.from +  "的消息是：</label><div class='text-info'>"+message.data+"</div></div><br>");
+
+		}
+    });
+
+
+	// 注册
+    var userId;
+    var nickname;
+    var password;
+    document.getElementById('reg').onclick = function () {
+        userId = document.getElementById("userId").value;
+        // 设置ajax同步，先获取用户数据，在注册
+        $.ajaxSettings.async = false;
+        $.get("/user/" + userId, function (data) {
+            nickname = data.data.nickname;
+            password = data.data.password;
+        })
+        var option = {
+            username: userId,
+            password: password,
+			nickname: nickname,
+            appKey: WebIM.config.appkey,
+            success: function () {
+                console.log('注册成功');
+            },
+            error: function () {
+                console.log('注册失败');
+            },
+            apiUrl: WebIM.config.apiURL
+        };
+        conn.signup(option);
+    };
+
+	// 登录
+	document.getElementById('login').onclick = function () {
+		console.log(WebIM, window.WebIM);
+		userId = document.getElementById("userId").value;
+		// 设置ajax同步，先获取用户数据，在注册
+		$.ajaxSettings.async = false;
+		$.get("/user/" + userId, function (data) {
+			nickname = data.data.nickname;
+			password = data.data.password;
+		})
+		options = {
+			apiUrl: WebIM.config.apiURL,
+			user: userId,
+			pwd: password,
+			appKey: WebIM.config.appkey
+		};
+		conn.open(options);
+		console.log(options)
+	};
+
+
+
+	//文本消息
+	var conf = WebIM.config
+	//var WebIM = WebIM.default
+	WebIM.config = conf
+	WebIM.message = WebIM.default.message
+	WebIM.utils = WebIM.default.utils
+	WebIM.debug = WebIM.default.debug
+	WebIM.statusCode = WebIM.default.statusCode
+
+	var myDate = new Date().toLocaleString();
+	document.getElementById('send').onclick = function () {
+		var tname = document.getElementById("toUserId").value;
+		var tmsg = document.getElementById("myinfo").value;
+		var id = conn.getUniqueId();                 // 生成本地消息id
+		var msg = new WebIM.default.message('txt', id);      // 创建文本消息
+		msg.set({
+			msg: tmsg,                  // 消息内容
+			to: tname,
+			ext: {
+				'time': myDate
+			},                       // 接收消息对象（用户id）
+			success: function (id, serverMsgId) {
+				console.log('send private text Success');
+				msgText = msg.body.msg;
+			},
+			fail: function (e) {
+				console.log("Send private text error");
+			}
+		});
+		msg.body.chatType = 'singleChat';
+		conn.send(msg.body);
+		$("#log-container").append("<div class='bg-success'><label class='text-info'>用户ID为&nbsp;"+userId+"发的消息是：</label><div class='text-info'>"+tmsg+"</div></div><br>");
+		console.log(msg);
+
+	};
+
+</script>
+
+</body>
+</html>
